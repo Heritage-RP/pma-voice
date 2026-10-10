@@ -71,6 +71,67 @@ end
 
 exports('setPlayerCall', setPlayerCall)
 
+-- resource name -> check, see addCallCheck
+local callChecks = {}
+
+--- adds a check run before a client changes its own call channel through the `pma-voice:setPlayerCall` net event
+--- (the server-side `setPlayerCall` export is trusted and never checked). One check per resource, removed when it stops.
+---@param cb function called with (source, callChannel, currentCallChannel), must return true to allow the change
+function addCallCheck(cb)
+	local cbType = type(cb)
+	if cbType ~= 'function' and (cbType ~= 'table' or not cb.__cfx_functionReference) then
+		error(("'cb' expected 'function' got '%s'"):format(cbType))
+	end
+	local resource = GetInvokingResource() or GetCurrentResourceName()
+	callChecks[resource] = cb
+	logger.info('%s added a call check', resource)
+end
+
+exports('addCallCheck', addCallCheck)
+
+--- removes the call check of the invoking resource
+function removeCallCheck()
+	local resource = GetInvokingResource() or GetCurrentResourceName()
+	callChecks[resource] = nil
+	logger.info('%s removed its call check', resource)
+end
+
+exports('removeCallCheck', removeCallCheck)
+
+AddEventHandler('onResourceStop', function(resource)
+	callChecks[resource] = nil
+end)
+
+--- whether every call check allows `source` to move from `current` to `callChannel`; a failing check refuses
+---@return boolean allowed
+---@return string|nil resource the resource whose check refused
+function canSetPlayerCall(source, callChannel, current)
+	for resource, check in pairs(callChecks) do
+		local ok, allowed = pcall(check, source, callChannel, current)
+		if not ok then
+			logger.error('call check of %s failed: %s', resource, allowed)
+			return false, resource
+		end
+		if allowed ~= true then
+			return false, resource
+		end
+	end
+	return true
+end
+
 RegisterNetEvent('pma-voice:setPlayerCall', function(callChannel)
-	setPlayerCall(source, callChannel)
+	local src = source
+	local channel = tonumber(callChannel)
+	if channel then
+		voiceData[src] = voiceData[src] or defaultTable(src)
+		local current = voiceData[src].call
+		local allowed, resource = canSetPlayerCall(src, channel, current)
+		if not allowed then
+			-- refused before anything is sent: nobody is told of the attempt, the client keeps its current call
+			logger.verbose('[call] %s refused call %s (check of %s)', src, channel, resource)
+			TriggerClientEvent('pma-voice:clSetPlayerCall', src, current)
+			return
+		end
+	end
+	setPlayerCall(src, callChannel)
 end)
