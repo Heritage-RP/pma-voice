@@ -8,5 +8,6 @@ through convars or other resources (Heritage-RP/PRODUCTION-SERVER docs/dev/forks
 | Patch | Kind | Upstream | Files |
 |---|---|---|---|
 | `addCallCheck(fn)` / `removeCallCheck()`: a check run before a client changes its own call channel (`pma-voice:setPlayerCall`); a refused change is dropped before anything is sent (PRODUCTION-SERVER#318, used by hrp-voice) | generic | candidate | `server/module/phone.lua`, `docs/server-setters/addCallCheck.md`, `README.md` |
+| `setUiHidden(hidden)` (client export): hides the voice UI on top of `voice_enableUi`, for a resource that clears the screen of information (a cinematic view) | generic | candidate | `client/utils/Nui.lua`, `client/init/init.lua`, `docs/client-setters/setUiHidden.md`, `tests/lua/ui_spec.lua` |
 | Tests: `tests/run.sh` runs `tests/lua/*_spec.lua` in Lua 5.4 through docker (`just test`) | generic | no | `tests/**` |
 | Documentation of the fork | generic | no | `PATCHES.md` |
