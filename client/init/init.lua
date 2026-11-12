@@ -26,7 +26,7 @@ AddEventHandler('onClientResourceStart', function(resource)
 		micClicks = true
 	end
 	sendUIMessage({
-		uiEnabled = GetConvarInt("voice_enableUi", 1) == 1,
+		uiEnabled = uiShown(),
 		voiceModes = json.encode(Cfg.voiceModes),
 		voiceMode = mode - 1
 	})
